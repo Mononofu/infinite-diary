@@ -104,18 +104,35 @@ class MailReceiver(InboundMailHandler):
   def strip_quote(self, body):
     return re.split(".*On.*(\\n)?wrote:", body)[0]
 
+  def restore_newlines(self, body):
+    clean = ""
+    for line in body.split("\n"):
+      clean += line
+      if len(line) < 65:    # line break made by the user - keep it!
+        clean += "\n"
+      else:                 # add space to replace old newline
+        clean += " "
+    return clean.strip(' \t\n\r')
+
   def receive(self, message):
     logging.info("Received a message from: " + message.sender)
+    raw = ""
 
     entry = Entry(author='Julian')
     for content_type, body in message.bodies("text/plain"):
-      entry.content = self.strip_quote(body.decode())
-      logging.debug(entry.content)
+      raw = body.decode()
+      entry.content = self.restore_newlines(
+        self.strip_quote(raw))
 
-    matches = re.search("diaryentry(\d+)", entry.content)
+    if raw == "":
+      logging.error("Failed to find message body")
+      logging.error(message)
+      return
+
+    matches = re.search("diaryentry(\d+)", raw)
     if matches == None:
       logging.error("received mail that wasn't a diary entry")
-      logging.error(entry.content)
+      logging.error(raw)
       return
 
     entry.date = datetime.date.fromtimestamp(int(matches.group(1)))
