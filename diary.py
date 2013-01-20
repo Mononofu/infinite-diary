@@ -59,7 +59,7 @@ class MainPage(webapp2.RequestHandler):
           attachments += attachmentTemplate.render({
             'name': a.name,
             'thumbnail': a.thumbnail,
-            'key': a.content
+            'key': a.content.key()
             })
         body += entryTemplate.render({
           'entry_day': e.date.strftime("%A, %d %B"),
@@ -195,11 +195,12 @@ class MailReceiver(InboundMailHandler):
 
         attachment.put()
 
-
 app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
   ('/attachments', ShowAttachments),
-  ('/ideas', ShowIdeas)],
+  ('/ideas', ShowIdeas),
+  ('/_ah/admin', RedirectHandler, defaults={'_uri':"https://appengine.google.com/dashboard?app_id=s~infinite-diary"})
+  ],
                               debug=True)
