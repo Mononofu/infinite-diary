@@ -87,7 +87,8 @@ class ShowAttachments(webapp2.RequestHandler):
             })
     self.response.out.write(indexTemplate.render({
         'title': 'Attachments',
-        'body': attachments
+        'body': attachments,
+        'active_page': 'attachments'
       }))
 
 
@@ -115,7 +116,8 @@ class ShowIdeas(webapp2.RequestHandler):
 
     self.response.out.write(indexTemplate.render({
         'title': 'Ideas',
-        'body': body_text
+        'body': body_text,
+        'active_page': 'ideas'
       }))
 
 
@@ -124,6 +126,7 @@ class EntryReminder(webapp2.RequestHandler):
     today = datetime.date.fromtimestamp(time.time())
 
     q = Entry.all().filter("date >", today - datetime.timedelta(days=1))
+    msg = ""
 
     if q.count() <= 0:
       mail.send_mail(sender="Infinite Diary <diary@furidamu.org>",
@@ -137,9 +140,15 @@ Just respond to this message with todays entry.
 -----
 diaryentry%dtag
 """ % int(time.time()))
-      self.response.write("Reminder sent")
+      msg = "Reminder sent"
     else:
-      self.response.write("I already have an entry for today")
+      msg = "I already have an entry for today"
+
+    self.response.out.write(indexTemplate.render({
+        'title': 'Ideas',
+        'body': msg,
+        'active_page': 'reminder'
+      }))
 
 
 class MailReceiver(InboundMailHandler):

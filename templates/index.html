@@ -1,3 +1,12 @@
+{% set navigation_bar = [
+    ('/', 'index', 'Diary Entries'),
+    ('/attachments', 'attachments', 'Attachments'),
+    ('/ideas', 'ideas', 'Ideas'),
+    ('/reminder', 'reminder', 'Test Reminder'),
+    ('/_ah/admin/', 'admin', 'Admin')
+] -%}
+{% set active_page = active_page|default('index') -%}
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -15,11 +24,10 @@
     <div class="container-narrow">
         <div class="masthead">
         <ul class="nav nav-pills pull-right">
-             <li class="active"><a href="/">Diary Entries</a></li>
-             <li><a href="/attachments">Attachments</a></li>
-             <li><a href="/ideas">Ideas</a></li>
-             <li><a href="/reminder">Test Reminder</a></li>
-             <li><a href="/_ah/admin/" target="_blank">Admin</a></li>
+        {% for href, id, caption in navigation_bar %}
+            <li{% if id == active_page %} class="active"{% endif%}>
+            <a href="{{ href|e }}">{{ caption|e }}</a></li>
+        {% endfor %}
         </ul>
         <h3 class="muted">Infinite Diary</h3>
       </div>
