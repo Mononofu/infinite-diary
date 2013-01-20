@@ -9,6 +9,7 @@ import datetime
 from google.appengine.ext import db, blobstore
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.api import files, images, mail
+from google.appengine.ext.webapp import blobstore_handlers
 
 from pytz.gae import pytz
 
@@ -59,7 +60,7 @@ class MainPage(webapp2.RequestHandler):
           attachments += attachmentTemplate.render({
             'name': a.name,
             'thumbnail': a.thumbnail,
-            'key': a.content.key()
+            'key': a.key()
             })
         body += entryTemplate.render({
           'entry_day': e.date.strftime("%A, %d %B"),
@@ -82,12 +83,18 @@ class ShowAttachments(webapp2.RequestHandler):
       attachments += attachmentTemplate.render({
             'name': a.name,
             'thumbnail': a.thumbnail,
-            'key': a.content
+            'key': a.key()
             })
     self.response.out.write(indexTemplate.render({
         'title': 'Attachments',
         'body': attachments
       }))
+
+
+class ServeAttachment(blobstore_handlers.BlobstoreDownloadHandler):
+  def get(self, key):
+    a = Attachment.get(key)
+    self.send_blob(a.content, content_type=a.content_type)
 
 
 class ShowIdeas(webapp2.RequestHandler):
@@ -201,8 +208,9 @@ app = webapp2.WSGIApplication([
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
   ('/attachments', ShowAttachments),
+  ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
-  webapp2.Route('/_ah/admin', RedirectHandler, defaults={
+  webapp2.Route('/_ah/admin', webapp2.RedirectHandler, defaults={
     '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})
   ],
                               debug=True)
