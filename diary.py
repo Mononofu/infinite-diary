@@ -12,7 +12,6 @@ from google.appengine.api import files, images, mail
 
 from pytz.gae import pytz
 
-
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
 
@@ -40,6 +39,13 @@ class Attachment(db.Model):
 
 
 class MainPage(webapp2.RequestHandler):
+  def markup_text(self, text):
+    def add_a_tag(match):
+      return "<a href='%s'>%s</a>" % (match.group(0), match.group(0))
+    text = re.sub("https?://([0-9a-zA-Z\.-]+)(\.[a-zA-Z0-9]+){2,6}[\S]*", add_a_tag, text)
+
+    return text.replace("\n", "<br>\n")
+
   def get(self):
       self.response.headers['Content-Type'] = 'text/html'
 
@@ -55,7 +61,7 @@ class MainPage(webapp2.RequestHandler):
             })
         body += entryTemplate.render({
           'entry_day': e.date.strftime("%A, %d %B"),
-          'content': e.content.replace("\n", "<br>\n"),
+          'content': self.markup_text(e.content),
           'creation_time': pytz.utc.localize(e.creation_time).astimezone(
             local_tz).strftime("%A, %d %B - %H:%M"),
           'attachments': attachments
