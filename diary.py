@@ -195,12 +195,14 @@ class MailReceiver(InboundMailHandler):
 
         attachment.put()
 
+
 app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
   ('/attachments', ShowAttachments),
   ('/ideas', ShowIdeas),
-  ('/_ah/admin', RedirectHandler, defaults={'_uri':"https://appengine.google.com/dashboard?app_id=s~infinite-diary"})
+  webapp2.Route('/_ah/admin', RedirectHandler, defaults={
+    '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})
   ],
                               debug=True)
