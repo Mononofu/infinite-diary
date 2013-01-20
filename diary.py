@@ -88,6 +88,28 @@ class ShowAttachments(webapp2.RequestHandler):
       }))
 
 
+class ShowIdeas(webapp2.RequestHandler):
+  def scrape_ideas(self, text):
+    return [line.split(":", 2)[1] for line in text.split("\n")
+      if line.startswith("--") and "idea" in line and ":" in line]
+
+  def get(self):
+    ideas = []
+    for e in Entry.all().order('-date'):
+      if "--" in e.content:
+        ideas += self.scrape_ideas(e.content)
+
+    body_text = "<ul>\n"
+    for idea in ideas:
+      body_text += "\t<li>%s</li>\n" % idea
+    body_text += "</ul>"
+
+    self.response.out.write(indexTemplate.render({
+        'title': 'Ideas',
+        'body': body_text
+      }))
+
+
 class EntryReminder(webapp2.RequestHandler):
   def get(self):
     today = datetime.date.fromtimestamp(time.time())
@@ -175,5 +197,6 @@ app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
-  ('/attachments', ShowAttachments)],
+  ('/attachments', ShowAttachments),
+  ('/ideas', ShowIdeas)],
                               debug=True)
