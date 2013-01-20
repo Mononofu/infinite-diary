@@ -10,6 +10,8 @@ from google.appengine.ext import db, blobstore
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.api import files, images, mail
 
+from pytz.gae import pytz
+
 
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
@@ -17,6 +19,8 @@ jinja_environment = jinja2.Environment(
 indexTemplate = jinja_environment.get_template('templates/index.html')
 entryTemplate = jinja_environment.get_template('templates/entry.html')
 attachmentTemplate = jinja_environment.get_template('templates/attachment.html')
+
+local_tz = pytz.timezone('Europe/Vienna')
 
 
 class Entry(db.Model):
@@ -41,7 +45,7 @@ class MainPage(webapp2.RequestHandler):
 
       body = ""
 
-      for e in Entry.all():
+      for e in Entry.all().order('-date'):
         attachments = ""
         for a in Attachment.all().filter("entry =", e.key()):
           attachments += attachmentTemplate.render({
@@ -52,7 +56,8 @@ class MainPage(webapp2.RequestHandler):
         body += entryTemplate.render({
           'entry_day': e.date.strftime("%A, %d %B"),
           'content': e.content.replace("\n", "<br>\n"),
-          'creation_time': e.creation_time.strftime("%A, %d %B - %H:%M"),
+          'creation_time': pytz.utc.localize(e.creation_time).astimezone(
+            local_tz).strftime("%A, %d %B - %H:%M"),
           'attachments': attachments
           })
 
