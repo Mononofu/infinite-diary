@@ -17,7 +17,8 @@ jinja_environment = jinja2.Environment(
 
 indexTemplate = jinja_environment.get_template('templates/index.html')
 entryTemplate = jinja_environment.get_template('templates/entry.html')
-attachmentTemplate = jinja_environment.get_template('templates/attachment.html')
+attachmentTemplate = jinja_environment.get_template(
+  'templates/attachment.html')
 
 local_tz = pytz.timezone('Europe/Vienna')
 
@@ -42,7 +43,8 @@ class MainPage(webapp2.RequestHandler):
   def markup_text(self, text):
     def add_a_tag(match):
       return "<a href='%s'>%s</a>" % (match.group(0), match.group(0))
-    text = re.sub("https?://([0-9a-zA-Z\.-]+)(\.[a-zA-Z0-9]+){2,6}[\S]*", add_a_tag, text)
+    text = re.sub("https?://([0-9a-zA-Z\.-]+)(\.[a-zA-Z0-9]+){2,6}[\S]*",
+      add_a_tag, text)
 
     return text.replace("\n", "<br>\n")
 
@@ -188,7 +190,8 @@ class MailReceiver(InboundMailHandler):
         files.finalize(blob)
         attachment.content = files.blobstore.get_blob_key(blob)
         attachment.entry = entry.key()
-        attachment.thumbnail = images.get_serving_url(attachment.content, size=400)
+        attachment.thumbnail = images.get_serving_url(attachment.content,
+          size=400)
 
         attachment.put()
 
