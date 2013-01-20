@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ title }} &middot; Automatic Diary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Le styles -->
+    <link href="/assets/stylesheets/bootstrap.css" rel="stylesheet">
+    <link href="/assets/stylesheets/main.css" rel="stylesheet">
+    <script src="/assets/javascripts/jquery.js"></script>
+  </head>
+
+  <body>
+    <div class="container-narrow">
+        <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+             <li class="active"><a href="/">Diary Entries</a></li>
+             <li><a href="/attachments">Attachments</a></li>
+             <li><a href="/reminder">Test Reminder</a></li>
+             <li><a href="/_ah/admin/" target="_blank">Admin</a></li>
+        </ul>
+        <h3 class="muted">Infinite Diary</h3>
+      </div>
+      <hr>
+        {{ body }}
+    </div>
+  </body>
+</html>
