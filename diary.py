@@ -22,7 +22,6 @@ attachmentTemplate = jinja_environment.get_template(
   'templates/attachment.html')
 
 local_tz = pytz.timezone('Europe/Vienna')
-dummy_var = "dumm"
 
 
 class Entry(db.Model):
