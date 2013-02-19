@@ -6,6 +6,7 @@ import logging
 import base64
 import time
 import datetime
+import json
 from google.appengine.ext import db, blobstore
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.api import files, images, mail
@@ -34,11 +35,22 @@ def markup_text(text):
 
   return text.replace("\n", "<br>\n")
 
+
 class Entry(db.Model):
   author = db.StringProperty()
   content = db.TextProperty()
   date = db.DateProperty()
   creation_time = db.DateTimeProperty(auto_now_add=True)
+
+  def to_dict(self):
+    return dict([(p, unicode(getattr(self, p))) for p in self.properties()])
+
+  def from_json(self, json):
+    self.author = json['author']
+    self.content = json['content']
+    self.date = datetime.datetime.strptime(json['date'], '%Y-%m-%d').date()
+    self.creation_time = datetime.datetime.strptime(json['creation_time'],
+      '%Y-%m-%d %H:%M:%S.%f')
 
 
 class Attachment(db.Model):
@@ -56,7 +68,7 @@ class MainPage(webapp2.RequestHandler):
 
       body = ""
 
-      for e in Entry.all().order('-date'):
+      for e in Entry.all().order('-date').run(limit=20):
         attachments = ""
         for a in Attachment.all().filter("entry =", e.key()):
           attachments += attachmentTemplate.render({
@@ -78,6 +90,35 @@ class MainPage(webapp2.RequestHandler):
         'body': body
       }))
 
+
+class BackupEntries(webapp2.RequestHandler):
+  def get(self):
+    entries = [e.to_dict() for e in Entry.all().order('-date')]
+    self.response.headers['Content-Type'] = "application/json"
+    self.response.headers['Content-Disposition'] = "attachment; filename=entries.json"
+    self.response.out.write(json.dumps(entries))
+
+
+class HandleBackup(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write(indexTemplate.render({
+        'title': 'Backup',
+        'body': """<a href="/backup/entries">Create Backup</a><form action="/backup" method="post" enctype="multipart/form-data">
+  <input type="file" name="entries"/>
+  <input type="submit" value="Submit">
+</form>""",
+        'active_page': 'backup'
+      }))
+
+  def post(self):
+    rawEntries = self.request.get("entries")
+    entries = json.loads(rawEntries)
+    for e in entries:
+      newEntry = Entry()
+      newEntry.from_json(e)
+      newEntry.put()
+
+      self.redirect("/backup")
 
 class ShowAttachments(webapp2.RequestHandler):
   def get(self):
@@ -166,6 +207,10 @@ class EntryReminder(webapp2.RequestHandler):
     msg = ""
 
     if q.count() <= 0:
+      q = Entry.all().filter("date =", today - datetime.timedelta(days=30))
+      old_entry = ""
+      if q.count() > 0:
+        old_entry = "\tEntry from 30 days ago\n%s\n\n" % q[0].content
       mail.send_mail(sender="Infinite Diary <diary@furidamu.org>",
               to="Julian Schrittwieser <j.schrittwieser@gmail.com>",
               subject="Entry reminder",
@@ -173,10 +218,10 @@ class EntryReminder(webapp2.RequestHandler):
 
 Just respond to this message with todays entry.
 
-
+%s
 -----
 diaryentry%dtag
-""" % int(time.time()))
+""" % (old_entry, int(time.time())))
       msg = "Reminder sent"
     else:
       msg = "I already have an entry for today"
@@ -258,6 +303,8 @@ app = webapp2.WSGIApplication([
   ('/ideas', ShowIdeas),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
+  ('/backup/entries', BackupEntries),
+  ('/backup', HandleBackup),
   webapp2.Route('/_ah/admin', webapp2.RedirectHandler, defaults={
     '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})
   ],

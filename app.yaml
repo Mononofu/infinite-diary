@@ -12,6 +12,7 @@ handlers:
   static_dir: static
 - url: /.*
   script: diary.app
+  login: admin
 
 libraries:
 - name: jinja2
