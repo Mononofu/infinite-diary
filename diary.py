@@ -50,7 +50,7 @@ class Entry(db.Model):
     self.content = json['content']
     self.date = datetime.datetime.strptime(json['date'], '%Y-%m-%d').date()
     self.creation_time = datetime.datetime.strptime(json['creation_time'],
-      '%Y-%m-%d %H:%M:%S.%f')
+                                                    '%Y-%m-%d %H:%M:%S.%f')
 
 
 class Attachment(db.Model):
@@ -64,31 +64,44 @@ class Attachment(db.Model):
 
 class MainPage(webapp2.RequestHandler):
   def get(self):
-      self.response.headers['Content-Type'] = 'text/html'
+    self.response.headers['Content-Type'] = 'text/html'
+    older_than = int(self.request.get("older_than", datetime.datetime.now().date().toordinal() + 1))
+    older_than = datetime.date.fromordinal(older_than)
 
-      body = ""
+    body = ""
 
-      for e in Entry.all().order('-date').run(limit=20):
-        attachments = ""
-        for a in Attachment.all().filter("entry =", e.key()):
-          attachments += attachmentTemplate.render({
-            'name': a.name,
-            'thumbnail': a.thumbnail,
-            'key': a.key()
-            })
-        body += entryTemplate.render({
-          'entry_day': e.date.strftime("%A, %d %B"),
-          'content': markup_text(e.content),
-          'creation_time': pytz.utc.localize(e.creation_time).astimezone(
-            local_tz).strftime("%A, %d %B - %H:%M"),
-          'attachments': attachments,
-          'key': e.key()
-          })
+    oldest = datetime.datetime.now().date().toordinal() + 1
 
-      self.response.out.write(indexTemplate.render({
-        'title': 'Home',
-        'body': body
-      }))
+    for e in Entry.all().filter("date <", older_than).order('-date').run(limit=20):
+      attachments = ""
+      for a in Attachment.all().filter("entry =", e.key()):
+        attachments += attachmentTemplate.render({
+          'name': a.name,
+          'thumbnail': a.thumbnail,
+          'key': a.key()
+        })
+      body += entryTemplate.render({
+        'entry_day': e.date.strftime("%A, %d %B"),
+        'content': markup_text(e.content),
+        'creation_time': pytz.utc.localize(e.creation_time).astimezone(
+          local_tz).strftime("%A, %d %B - %H:%M"),
+        'attachments': attachments,
+        'key': e.key()
+      })
+      oldest = e.date.toordinal()
+
+    nav = """
+      <div class='row'>
+        <div class='span4 offset4'>
+          <a href='/?older_than=%d'>Newer</a> -- <a href='/?older_than=%d'>Older</a>
+        </div>
+      </div>""" % (oldest + 41, oldest)
+
+    body = nav + body + nav
+    self.response.out.write(indexTemplate.render({
+      'title': 'Home',
+      'body': body
+    }))
 
 
 class BackupEntries(webapp2.RequestHandler):
@@ -108,7 +121,7 @@ class HandleBackup(webapp2.RequestHandler):
   <input type="submit" value="Submit">
 </form>""",
         'active_page': 'backup'
-      }))
+    }))
 
   def post(self):
     rawEntries = self.request.get("entries")
@@ -120,6 +133,7 @@ class HandleBackup(webapp2.RequestHandler):
 
       self.redirect("/backup")
 
+
 class ShowAttachments(webapp2.RequestHandler):
   def get(self):
     attachments = ""
@@ -128,12 +142,12 @@ class ShowAttachments(webapp2.RequestHandler):
             'name': a.name,
             'thumbnail': a.thumbnail,
             'key': a.key()
-            })
+      })
     self.response.out.write(indexTemplate.render({
         'title': 'Attachments',
         'body': attachments,
         'active_page': 'attachments'
-      }))
+    }))
 
 
 class EntryAppendForm(webapp2.RequestHandler):
