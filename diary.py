@@ -53,6 +53,12 @@ class Entry(db.Model):
                                                     '%Y-%m-%d %H:%M:%S.%f')
 
 
+class Thought(db.Model):
+  author = db.StringProperty()
+  content = db.TextProperty()
+  creation_time = db.DateTimeProperty(auto_now_add=True)
+
+
 class Attachment(db.Model):
   name = db.StringProperty()
   thumbnail = db.StringProperty()
@@ -263,23 +269,46 @@ class MailReceiver(InboundMailHandler):
 
   def receive(self, message):
     logging.info("Received a message from: " + message.sender)
-    raw = ""
 
-    entry = Entry(author='Julian')
+    if "diary@infinite-diary.appspotmail.com" in message.to:
+      self.handle_entry(message)
+    elif "thoughts@infinite-diary.appspotmail.com" in message.to:
+      self.handle_thought(message)
+    else:
+      logging.error("unknown receiver", message.to)
+
+  def get_content(self, message):
     for content_type, body in message.bodies("text/plain"):
-      raw = body.decode()
-      entry.content = self.restore_newlines(
-        self.strip_quote(raw))
+      return self.restore_newlines(
+        self.strip_quote(body.decode()))
 
-    if raw == "":
+    return None
+
+  def handle_thought(self, message):
+    thought = Thought(author='Julian')
+    thought.content = self.get_content(message)
+
+    if thought.content is None:
       logging.error("Failed to find message body")
       logging.error(message)
       return
 
-    matches = re.search("diaryentry(\d+)", raw)
-    if matches == None:
+    thought.put()
+
+  def handle_entry(self, message):
+
+    entry = Entry(author='Julian')
+    entry.content = self.get_content(message)
+
+    if entry.content is None:
+      logging.error("Failed to find message body")
+      logging.error(message)
+      return
+
+    matches = re.search("diaryentry(\d+)", entry.content)
+    if matches is None:
       logging.error("received mail that wasn't a diary entry")
-      logging.error(raw)
+      logging.error(entry.content)
       return
 
     entry.date = datetime.date.fromtimestamp(int(matches.group(1)))
@@ -315,6 +344,7 @@ app = webapp2.WSGIApplication([
   ('/attachments', ShowAttachments),
   ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
+  ('/thoughts', ShowThoughts),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
   ('/backup/entries', BackupEntries),
