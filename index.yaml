@@ -1,0 +1,7 @@
+indexes:
+
+- kind: ToDo
+  properties:
+  - name: done_time
+  - name: creation_time
+    direction: desc

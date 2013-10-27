@@ -24,6 +24,7 @@ class ToDo(db.Model):
   author = db.StringProperty()
   content = db.TextProperty()
   category = db.StringProperty()
+  done_time = db.DateTimeProperty()
   creation_time = db.DateTimeProperty(auto_now_add=True)
 
 

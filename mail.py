@@ -69,7 +69,7 @@ class MailReceiver(InboundMailHandler):
     elif TODO_EMAIL in message.to:
       self.handle_todo(message)
     else:
-      logging.error("unknown receiver: %s", message.to)
+      logging.error("unknown receiver: %s\n%s", message.to, message.original)
 
   def get_content(self, message):
     for content_type, body in message.bodies("text/plain"):

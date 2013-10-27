@@ -2,8 +2,8 @@ import webapp2
 import re
 import datetime
 from pytz.gae import pytz
+from collections import defaultdict
 
-from google.appengine.api import files
 from google.appengine.ext.webapp import blobstore_handlers
 
 from models import Entry, Attachment, ToDo
@@ -149,14 +149,16 @@ class ShowIdeas(webapp2.RequestHandler):
 
 class ShowToDo(webapp2.RequestHandler):
   def get(self):
-    todos = []
-    for t in ToDo.all().order('-creation_time'):
-      todos.append(t.content)
+    todos = defaultdict(list)
+    for t in ToDo.all().filter('done_time =', None).order('-creation_time'):
+      todos[t.category].append(t.content)
 
-    body_text = "<ul>\n"
-    for t in todos:
-      body_text += "\t<li>%s</li>\n" % t
-    body_text += "</ul>"
+    body_text = ""
+    for category, items in todos.iteritems():
+      body_text += "<h2>%s</h2>\n<ul>" % category
+      for t in items:
+        body_text += "\t<li>%s</li>\n" % t
+      body_text += "</ul>"
 
     self.response.out.write(indexTemplate.render({
         'title': 'To-Do',
