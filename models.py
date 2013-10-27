@@ -1,4 +1,7 @@
 from google.appengine.ext import db
+from google.appengine.ext import blobstore
+
+import datetime
 
 class Entry(db.Model):
   author = db.StringProperty()

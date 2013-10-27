@@ -1,31 +1,17 @@
 import webapp2
-import jinja2
-import os
 import re
-import logging
 import base64
-import time
 import datetime
-import json
-from google.appengine.ext import blobstore
-from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
-from google.appengine.api import files, images, mail
-from google.appengine.ext.webapp import blobstore_handlers
-
 from pytz.gae import pytz
 
-from config import *
-from models import *
+from google.appengine.api import files, mail
+from google.appengine.ext.webapp import blobstore_handlers
 
-jinja_environment = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
-
-indexTemplate = jinja_environment.get_template('templates/index.html')
-entryTemplate = jinja_environment.get_template('templates/entry.html')
-attachmentTemplate = jinja_environment.get_template(
-  'templates/attachment.html')
-entryAppendTemplate = jinja_environment.get_template(
-  'templates/entry_append.html')
+from models import Entry, Attachment, ToDo
+from templates import (attachmentTemplate, entryTemplate, indexTemplate,
+    entryAppendTemplate)
+from mail import EntryReminder, MailReceiver
+from backup import HandleBackup, BackupEntries
 
 local_tz = pytz.timezone('Europe/London')
 
@@ -81,39 +67,6 @@ class MainPage(webapp2.RequestHandler):
       'title': 'Home',
       'body': body
     }))
-
-
-class BackupEntries(webapp2.RequestHandler):
-  def get(self):
-    entries = [e.to_dict() for e in Entry.all().order('-date')]
-    self.response.headers['Content-Type'] = "application/json"
-    self.response.headers['Content-Disposition'] = (
-        "attachment; filename=entries.json")
-    self.response.out.write(json.dumps(entries))
-
-
-class HandleBackup(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write(indexTemplate.render({
-      'title': 'Backup',
-      'body': """
-<a href="/backup/entries">Create Backup</a>
-<form action="/backup" method="post" enctype="multipart/form-data">
-  <input type="file" name="entries"/>
-  <input type="submit" value="Submit">
-</form>""",
-      'active_page': 'backup'
-    }))
-
-  def post(self):
-    rawEntries = self.request.get("entries")
-    entries = json.loads(rawEntries)
-    for e in entries:
-      newEntry = Entry()
-      newEntry.from_json(e)
-      newEntry.put()
-
-      self.redirect("/backup")
 
 
 class ShowAttachments(webapp2.RequestHandler):
@@ -211,124 +164,6 @@ class ShowToDo(webapp2.RequestHandler):
         'body': body_text,
         'active_page': 'todo'
     }))
-
-
-class EntryReminder(webapp2.RequestHandler):
-  def get(self):
-    today = datetime.date.fromtimestamp(time.time())
-
-    q = Entry.all().filter("date >", today - datetime.timedelta(days=1))
-    msg = ""
-
-    if q.count() <= 0:
-      q = Entry.all().filter("date =", today - datetime.timedelta(days=30))
-      old_entry = ""
-      if q.count() > 0:
-        old_entry = "\tEntry from 30 days ago\n%s\n\n" % q[0].content
-      mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
-              to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
-              subject="Entry reminder",
-              body="""Don't forget to update your diary!
-
-Just respond to this message with todays entry.
-
-%s
------
-diaryentry%dtag
-""" % (old_entry, int(time.time())))
-      msg = "Reminder sent"
-    else:
-      msg = "I already have an entry for today"
-
-    self.response.out.write(indexTemplate.render({
-        'title': 'Ideas',
-        'body': msg,
-        'active_page': 'reminder'
-      }))
-
-
-class MailReceiver(InboundMailHandler):
-  def strip_quote(self, body):
-    return re.split(".*On.*(\\n)?wrote:", body)[0]
-
-  def restore_newlines(self, body):
-    clean = ""
-    for line in body.split("\n"):
-      clean += line
-      if len(line) < 65:    # line break made by the user - keep it!
-        clean += "\n"
-      else:                 # add space to replace old newline
-        clean += " "
-    return clean.strip(' \t\n\r')
-
-  def receive(self, message):
-    logging.info("Received a message from: " + message.sender)
-
-    if DIARY_EMAIL in message.to:
-      self.handle_entry(message)
-    elif TODO_EMAIL in message.to:
-      self.handle_todo(message)
-    else:
-      logging.error("unknown receiver: %s", message.to)
-
-  def get_content(self, message):
-    for content_type, body in message.bodies("text/plain"):
-      return (body.decode(), self.restore_newlines(
-        self.strip_quote(body.decode())))
-
-    return None
-
-  def handle_todo(self, message):
-    todo = ToDo(author='Julian')
-    raw, todo.content = self.get_content(message)
-
-    if todo.content is None:
-      logging.error("Failed to find message body")
-      logging.error(message)
-      return
-
-    todo.put()
-
-  def handle_entry(self, message):
-
-    entry = Entry(author='Julian')
-    raw, entry.content = self.get_content(message)
-
-    if entry.content is None:
-      logging.error("Failed to find message body")
-      logging.error(message)
-      return
-
-    matches = re.search("diaryentry(\d+)", raw)
-    if matches is None:
-      logging.error("received mail that wasn't a diary entry")
-      logging.error(raw)
-      return
-
-    entry.date = datetime.date.fromtimestamp(int(matches.group(1)))
-    entry.put()
-
-    # fall back to raw mail message for attachment parsing
-    for part in message.original.walk():
-      content_type = part.get_content_type()
-      if content_type not in ["text/plain", "text/html", "multipart/mixed",
-        "multipart/alternative"]:
-        attachment = Attachment(name=part.get_param("name"),
-          content_type=content_type)
-
-        # store attachment in blobstore
-        blob = files.blobstore.create(mime_type='application/octet-stream')
-
-        with files.open(blob, 'a') as f:
-          f.write(base64.b64decode(part.get_payload()))
-
-        files.finalize(blob)
-        attachment.content = files.blobstore.get_blob_key(blob)
-        attachment.entry = entry.key()
-        attachment.thumbnail = images.get_serving_url(attachment.content,
-          size=400)
-
-        attachment.put()
 
 
 app = webapp2.WSGIApplication([
