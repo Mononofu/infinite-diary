@@ -14,6 +14,8 @@ from google.appengine.ext.webapp import blobstore_handlers
 
 from pytz.gae import pytz
 
+from config import *
+
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
 
@@ -24,7 +26,7 @@ attachmentTemplate = jinja_environment.get_template(
 entryAppendTemplate = jinja_environment.get_template(
   'templates/entry_append.html')
 
-local_tz = pytz.timezone('Europe/Vienna')
+local_tz = pytz.timezone('Europe/London')
 
 
 def markup_text(text):
@@ -71,14 +73,16 @@ class Attachment(db.Model):
 class MainPage(webapp2.RequestHandler):
   def get(self):
     self.response.headers['Content-Type'] = 'text/html'
-    older_than = int(self.request.get("older_than", datetime.datetime.now().date().toordinal() + 1))
+    older_than = int(self.request.get("older_than",
+        datetime.datetime.now().date().toordinal() + 1))
     older_than = datetime.date.fromordinal(older_than)
 
     body = ""
 
     oldest = datetime.datetime.now().date().toordinal() + 1
 
-    for e in Entry.all().filter("date <", older_than).order('-date').run(limit=20):
+    for e in Entry.all().filter("date <", older_than).order('-date').run(
+        limit=20):
       attachments = ""
       for a in Attachment.all().filter("entry =", e.key()):
         attachments += attachmentTemplate.render({
@@ -90,18 +94,18 @@ class MainPage(webapp2.RequestHandler):
         'entry_day': e.date.strftime("%A, %d %B"),
         'content': markup_text(e.content),
         'creation_time': pytz.utc.localize(e.creation_time).astimezone(
-          local_tz).strftime("%A, %d %B - %H:%M"),
+            local_tz).strftime("%A, %d %B - %H:%M"),
         'attachments': attachments,
         'key': e.key()
       })
       oldest = e.date.toordinal()
 
     nav = """
-      <div class='row'>
-        <div class='span4 offset4'>
-          <a href='/?older_than=%d'>Newer</a> -- <a href='/?older_than=%d'>Older</a>
-        </div>
-      </div>""" % (oldest + 41, oldest)
+<div class='row'>
+  <div class='span4 offset4'>
+    <a href='/?older_than=%d'>Newer</a> -- <a href='/?older_than=%d'>Older</a>
+  </div>
+</div>""" % (oldest + 41, oldest)
 
     body = nav + body + nav
     self.response.out.write(indexTemplate.render({
@@ -114,19 +118,22 @@ class BackupEntries(webapp2.RequestHandler):
   def get(self):
     entries = [e.to_dict() for e in Entry.all().order('-date')]
     self.response.headers['Content-Type'] = "application/json"
-    self.response.headers['Content-Disposition'] = "attachment; filename=entries.json"
+    self.response.headers['Content-Disposition'] = (
+        "attachment; filename=entries.json")
     self.response.out.write(json.dumps(entries))
 
 
 class HandleBackup(webapp2.RequestHandler):
   def get(self):
     self.response.out.write(indexTemplate.render({
-        'title': 'Backup',
-        'body': """<a href="/backup/entries">Create Backup</a><form action="/backup" method="post" enctype="multipart/form-data">
+      'title': 'Backup',
+      'body': """
+<a href="/backup/entries">Create Backup</a>
+<form action="/backup" method="post" enctype="multipart/form-data">
   <input type="file" name="entries"/>
   <input type="submit" value="Submit">
 </form>""",
-        'active_page': 'backup'
+      'active_page': 'backup'
     }))
 
   def post(self):
@@ -216,7 +223,25 @@ class ShowIdeas(webapp2.RequestHandler):
         'title': 'Ideas',
         'body': body_text,
         'active_page': 'ideas'
-      }))
+    }))
+
+
+class ShowThoughts(webapp2.RequestHandler):
+  def get(self):
+    thoughts = []
+    for t in Thought.all().order('-date'):
+      thoughts.append(t.content)
+
+    body_text = "<ul>\n"
+    for t in thoughts:
+      body_text += "\t<li>%s</li>\n" % t
+    body_text += "</ul>"
+
+    self.response.out.write(indexTemplate.render({
+        'title': 'Thoughts',
+        'body': body_text,
+        'active_page': 'thoughts'
+    }))
 
 
 class EntryReminder(webapp2.RequestHandler):
@@ -231,8 +256,8 @@ class EntryReminder(webapp2.RequestHandler):
       old_entry = ""
       if q.count() > 0:
         old_entry = "\tEntry from 30 days ago\n%s\n\n" % q[0].content
-      mail.send_mail(sender="Infinite Diary <diary@furidamu.org>",
-              to="Julian Schrittwieser <j.schrittwieser@gmail.com>",
+      mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
+              to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
               subject="Entry reminder",
               body="""Don't forget to update your diary!
 
@@ -270,23 +295,23 @@ class MailReceiver(InboundMailHandler):
   def receive(self, message):
     logging.info("Received a message from: " + message.sender)
 
-    if "diary@infinite-diary.appspotmail.com" in message.to:
+    if DIARY_EMAIL in message.to:
       self.handle_entry(message)
-    elif "thoughts@infinite-diary.appspotmail.com" in message.to:
+    elif THOUGHTS_EMAIL in message.to:
       self.handle_thought(message)
     else:
-      logging.error("unknown receiver", message.to)
+      logging.error("unknown receiver: %s", message.to)
 
   def get_content(self, message):
     for content_type, body in message.bodies("text/plain"):
-      return self.restore_newlines(
-        self.strip_quote(body.decode()))
+      return (body.decode(), self.restore_newlines(
+        self.strip_quote(body.decode())))
 
     return None
 
   def handle_thought(self, message):
     thought = Thought(author='Julian')
-    thought.content = self.get_content(message)
+    raw, thought.content = self.get_content(message)
 
     if thought.content is None:
       logging.error("Failed to find message body")
@@ -298,17 +323,17 @@ class MailReceiver(InboundMailHandler):
   def handle_entry(self, message):
 
     entry = Entry(author='Julian')
-    entry.content = self.get_content(message)
+    raw, entry.content = self.get_content(message)
 
     if entry.content is None:
       logging.error("Failed to find message body")
       logging.error(message)
       return
 
-    matches = re.search("diaryentry(\d+)", entry.content)
+    matches = re.search("diaryentry(\d+)", raw)
     if matches is None:
       logging.error("received mail that wasn't a diary entry")
-      logging.error(entry.content)
+      logging.error(raw)
       return
 
     entry.date = datetime.date.fromtimestamp(int(matches.group(1)))
