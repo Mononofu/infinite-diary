@@ -7,7 +7,7 @@ import base64
 import time
 import datetime
 import json
-from google.appengine.ext import db, blobstore
+from google.appengine.ext import blobstore
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.api import files, images, mail
 from google.appengine.ext.webapp import blobstore_handlers
@@ -15,6 +15,7 @@ from google.appengine.ext.webapp import blobstore_handlers
 from pytz.gae import pytz
 
 from config import *
+from models import *
 
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
@@ -36,38 +37,6 @@ def markup_text(text):
     add_a_tag, text)
 
   return text.replace("\n", "<br>\n")
-
-
-class Entry(db.Model):
-  author = db.StringProperty()
-  content = db.TextProperty()
-  date = db.DateProperty()
-  creation_time = db.DateTimeProperty(auto_now_add=True)
-
-  def to_dict(self):
-    return dict([(p, unicode(getattr(self, p))) for p in self.properties()])
-
-  def from_json(self, json):
-    self.author = json['author']
-    self.content = json['content']
-    self.date = datetime.datetime.strptime(json['date'], '%Y-%m-%d').date()
-    self.creation_time = datetime.datetime.strptime(json['creation_time'],
-                                                    '%Y-%m-%d %H:%M:%S.%f')
-
-
-class Thought(db.Model):
-  author = db.StringProperty()
-  content = db.TextProperty()
-  creation_time = db.DateTimeProperty(auto_now_add=True)
-
-
-class Attachment(db.Model):
-  name = db.StringProperty()
-  thumbnail = db.StringProperty()
-  content_type = db.StringProperty()
-  creation_time = db.DateTimeProperty(auto_now_add=True)
-  content = blobstore.BlobReferenceProperty()
-  entry = db.ReferenceProperty(reference_class=Entry)
 
 
 class MainPage(webapp2.RequestHandler):
@@ -226,21 +195,21 @@ class ShowIdeas(webapp2.RequestHandler):
     }))
 
 
-class ShowThoughts(webapp2.RequestHandler):
+class ShowToDo(webapp2.RequestHandler):
   def get(self):
-    thoughts = []
-    for t in Thought.all().order('-date'):
-      thoughts.append(t.content)
+    todos = []
+    for t in ToDo.all().order('-date'):
+      todos.append(t.content)
 
     body_text = "<ul>\n"
-    for t in thoughts:
+    for t in todos:
       body_text += "\t<li>%s</li>\n" % t
     body_text += "</ul>"
 
     self.response.out.write(indexTemplate.render({
-        'title': 'Thoughts',
+        'title': 'To-Do',
         'body': body_text,
-        'active_page': 'thoughts'
+        'active_page': 'todo'
     }))
 
 
@@ -297,8 +266,8 @@ class MailReceiver(InboundMailHandler):
 
     if DIARY_EMAIL in message.to:
       self.handle_entry(message)
-    elif THOUGHTS_EMAIL in message.to:
-      self.handle_thought(message)
+    elif TODO_EMAIL in message.to:
+      self.handle_todo(message)
     else:
       logging.error("unknown receiver: %s", message.to)
 
@@ -309,16 +278,16 @@ class MailReceiver(InboundMailHandler):
 
     return None
 
-  def handle_thought(self, message):
-    thought = Thought(author='Julian')
-    raw, thought.content = self.get_content(message)
+  def handle_todo(self, message):
+    todo = ToDo(author='Julian')
+    raw, todo.content = self.get_content(message)
 
-    if thought.content is None:
+    if todo.content is None:
       logging.error("Failed to find message body")
       logging.error(message)
       return
 
-    thought.put()
+    todo.put()
 
   def handle_entry(self, message):
 
@@ -369,7 +338,7 @@ app = webapp2.WSGIApplication([
   ('/attachments', ShowAttachments),
   ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
-  ('/thoughts', ShowThoughts),
+  ('/todo', ShowToDo),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
   ('/backup/entries', BackupEntries),

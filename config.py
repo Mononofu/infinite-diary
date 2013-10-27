@@ -2,4 +2,5 @@ RECIPIENT_NAME = "Julian Schrittwies"
 RECIPIENT_EMAIL = "j.schrittwieser@gmail.com"
 
 DIARY_NAME = "Infinite Diary"
-DIARY_EMAIL ="diary@furidamu.org"
+DIARY_EMAIL = "diary@furidamu.org"
+TODO_EMAIL = "todo@furidamu.org"
