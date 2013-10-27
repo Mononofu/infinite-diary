@@ -23,6 +23,7 @@ class Entry(db.Model):
 class ToDo(db.Model):
   author = db.StringProperty()
   content = db.TextProperty()
+  category = db.StringProperty()
   creation_time = db.DateTimeProperty(auto_now_add=True)
 
 

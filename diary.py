@@ -1,10 +1,9 @@
 import webapp2
 import re
-import base64
 import datetime
 from pytz.gae import pytz
 
-from google.appengine.api import files, mail
+from google.appengine.api import files
 from google.appengine.ext.webapp import blobstore_handlers
 
 from models import Entry, Attachment, ToDo

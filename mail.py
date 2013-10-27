@@ -79,15 +79,11 @@ class MailReceiver(InboundMailHandler):
     return None
 
   def handle_todo(self, message):
-    todo = ToDo(author='Julian')
-    raw, todo.content = self.get_content(message)
+    raw, content = self.get_content(message)
 
-    if todo.content is None:
-      logging.error("Failed to find message body")
-      logging.error(message)
-      return
-
-    todo.put()
+    for todo_text in [s.lstrip(" -").strip() for s in content.split("\n")]:
+      todo = ToDo(author='Julian', category=message.subject, content=todo_text)
+      todo.put()
 
   def handle_entry(self, message):
 
