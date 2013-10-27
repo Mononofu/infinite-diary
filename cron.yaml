@@ -2,4 +2,4 @@ cron:
 - description: daily entry reminder
   url: /reminder
   schedule: every day 22:00
-  timezone: Europe/Vienna
+  timezone: Europe/London
