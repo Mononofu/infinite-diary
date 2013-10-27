@@ -150,7 +150,7 @@ class ShowIdeas(webapp2.RequestHandler):
 class ShowToDo(webapp2.RequestHandler):
   def get(self):
     todos = []
-    for t in ToDo.all().order('-date'):
+    for t in ToDo.all().order('-creation_time'):
       todos.append(t.content)
 
     body_text = "<ul>\n"
