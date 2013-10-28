@@ -53,6 +53,7 @@ class MailReceiver(InboundMailHandler):
 
   def restore_newlines(self, body):
     clean = ""
+    body = body.replace("\r", "")
     for line in body.split("\n"):
       clean += line
       if len(line) < 65:    # line break made by the user - keep it!
@@ -82,7 +83,8 @@ class MailReceiver(InboundMailHandler):
     raw, content = self.get_content(message)
 
     for todo_text in [s.lstrip(" -").strip() for s in content.split("\n")]:
-      todo = ToDo(author='Julian', category=message.subject, content=todo_text)
+      todo = ToDo(author='Julian', category=message.subject.lower(),
+          content=todo_text)
       todo.put()
 
   def handle_entry(self, message):
