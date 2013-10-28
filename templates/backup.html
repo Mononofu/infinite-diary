@@ -1,0 +1,20 @@
+<ul>
+  <li><a href="/backup/entries">Backup Entries</a></li>
+  <li><a href="/backup/todos">Backup ToDos</a></li>
+</ul>
+
+<form action="/backup" method="post" enctype="multipart/form-data" class="form-horizontal">
+  <div class="control-group">
+    <label class="control-label" for="inputEmail">Entries</label>
+    <div class="controls">
+      <input type="file" name="entries"/>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="inputEmail">ToDos</label>
+    <div class="controls">
+      <input type="file" name="todos"/>
+    </div>
+  </div>
+  <input type="submit" value="Submit">
+</form>

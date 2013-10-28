@@ -10,3 +10,4 @@ attachmentTemplate = jinja_environment.get_template(
   'templates/attachment.html')
 entryAppendTemplate = jinja_environment.get_template(
   'templates/entry_append.html')
+backupTemplate = jinja_environment.get_template('templates/backup.html')

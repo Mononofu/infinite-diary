@@ -56,3 +56,18 @@ textarea {
 .attachments {
   margin-top: 20px
 }
+
+.todo {
+    list-style: none;
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.todo li {
+    padding-left: 1em;
+}
+
+.todo li:before {
+    content: "☐";
+    padding-right: 5px;
+}

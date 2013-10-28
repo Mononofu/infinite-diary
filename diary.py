@@ -10,7 +10,7 @@ from models import Entry, Attachment, ToDo
 from templates import (attachmentTemplate, entryTemplate, indexTemplate,
     entryAppendTemplate)
 from mail import EntryReminder, MailReceiver
-from backup import HandleBackup, BackupEntries
+from backup import HandleBackup, BackupEntries, BackupToDos
 
 local_tz = pytz.timezone('Europe/London')
 
@@ -151,13 +151,14 @@ class ShowToDo(webapp2.RequestHandler):
   def get(self):
     todos = defaultdict(list)
     for t in ToDo.all().filter('done_time =', None).order('-creation_time'):
-      todos[t.category].append(t.content)
+      todos[t.category].append(t)
 
     body_text = ""
     for category, items in todos.iteritems():
-      body_text += "<h2>%s</h2>\n<ul>" % category
+      body_text += "<h2>%s</h2>\n<ul class='todo'>" % category
       for t in items:
-        body_text += "\t<li>%s</li>\n" % t
+        body_text += "\t<a href='/todo/finish/%s'><li>%s</li></a>\n" % (
+            t.key(), t.content)
       body_text += "</ul>"
 
     self.response.out.write(indexTemplate.render({
@@ -166,6 +167,12 @@ class ShowToDo(webapp2.RequestHandler):
         'active_page': 'todo'
     }))
 
+class FinishToDo(webapp2.RequestHandler):
+  def get(self, key):
+    t = ToDo.get(key)
+    t.done_time = datetime.datetime.now()
+    t.put()
+    self.redirect('/todo?refresh')
 
 app = webapp2.WSGIApplication([
   ('/', MainPage),
@@ -175,9 +182,11 @@ app = webapp2.WSGIApplication([
   ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
   ('/todo', ShowToDo),
+  ('/todo/finish/([^/]+)', FinishToDo),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
   ('/backup/entries', BackupEntries),
+  ('/backup/todos', BackupToDos),
   ('/backup', HandleBackup),
   webapp2.Route('/_ah/admin', webapp2.RedirectHandler, defaults={
     '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})

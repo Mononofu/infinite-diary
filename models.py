@@ -27,6 +27,19 @@ class ToDo(db.Model):
   done_time = db.DateTimeProperty()
   creation_time = db.DateTimeProperty(auto_now_add=True)
 
+  def to_dict(self):
+    return dict([(p, unicode(getattr(self, p))) for p in self.properties()])
+
+  def from_json(self, json):
+    self.author = json['author']
+    self.content = json['content']
+    self.category = json['category']
+    self.creation_time = datetime.datetime.strptime(json['creation_time'],
+                                                    '%Y-%m-%d %H:%M:%S.%f')
+    if json['done_time'] != 'None':
+      self.done_time = datetime.datetime.strptime(json['done_time'],
+                                                    '%Y-%m-%d %H:%M:%S.%f')
+
 
 class Attachment(db.Model):
   name = db.StringProperty()
