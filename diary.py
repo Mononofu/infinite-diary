@@ -8,9 +8,9 @@ from google.appengine.ext.webapp import blobstore_handlers
 
 from models import Entry, Attachment, ToDo
 from templates import (attachmentTemplate, entryTemplate, indexTemplate,
-    entryAppendTemplate)
+    entryAppendTemplate, backupTemplate)
 from mail import EntryReminder, MailReceiver
-from backup import HandleBackup, BackupEntries, BackupToDos
+from config import BACKUP_KEY
 
 local_tz = pytz.timezone('Europe/London')
 
@@ -174,6 +174,14 @@ class FinishToDo(webapp2.RequestHandler):
     t.put()
     self.redirect('/todo?refresh')
 
+class ShowBackup(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write(indexTemplate.render({
+      'title': 'Backup',
+      'body': backupTemplate.render({'key': BACKUP_KEY}),
+      'active_page': 'backup'
+    }))
+
 app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
@@ -185,9 +193,7 @@ app = webapp2.WSGIApplication([
   ('/todo/finish/([^/]+)', FinishToDo),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
-  ('/backup/entries', BackupEntries),
-  ('/backup/todos', BackupToDos),
-  ('/backup', HandleBackup),
+  ('/backup', ShowBackup),
   webapp2.Route('/_ah/admin', webapp2.RedirectHandler, defaults={
     '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})
   ],

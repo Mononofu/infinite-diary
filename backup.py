@@ -3,16 +3,20 @@ import json
 
 from models import Entry, ToDo
 from templates import indexTemplate, backupTemplate
+from config import BACKUP_KEY
+
+def enforce_key(self):
+  if self.request.get("key") != BACKUP_KEY:
+    self.redirect('/')
+
+class ListModels(webapp2.RequestHandler):
+  def get(self):
+    enforce_key(self)
+    self.response.out.write(json.dumps(['entries', 'todos']))
 
 class HandleBackup(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write(indexTemplate.render({
-      'title': 'Backup',
-      'body': backupTemplate.render(),
-      'active_page': 'backup'
-    }))
-
   def post(self):
+    enforce_key(self)
     rawEntries = self.request.get("entries")
     entries = json.loads(rawEntries)
     for e in entries:
@@ -32,6 +36,7 @@ class HandleBackup(webapp2.RequestHandler):
 
 class BackupEntries(webapp2.RequestHandler):
   def get(self):
+    enforce_key(self)
     entries = [e.to_dict() for e in Entry.all().order('-date')]
     self.response.headers['Content-Type'] = "application/json"
     self.response.headers['Content-Disposition'] = (
@@ -40,8 +45,16 @@ class BackupEntries(webapp2.RequestHandler):
 
 class BackupToDos(webapp2.RequestHandler):
   def get(self):
+    enforce_key(self)
     todos = [t.to_dict() for t in ToDo.all().order('-creation_time')]
     self.response.headers['Content-Type'] = "application/json"
     self.response.headers['Content-Disposition'] = (
         "attachment; filename=todos.json")
     self.response.out.write(json.dumps(todos))
+
+app = webapp2.WSGIApplication([
+  ('/backup/entries', BackupEntries),
+  ('/backup/todos', BackupToDos),
+  ('/backup', HandleBackup),
+  ('/backup/list', ListModels)],
+                              debug=True)

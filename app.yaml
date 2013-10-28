@@ -10,6 +10,8 @@ handlers:
   upload: static/images/favicon.ico
 - url: /assets
   static_dir: static
+- url: /backup/.*
+  script: backup.app
 - url: /.*
   script: diary.app
   login: admin
