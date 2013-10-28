@@ -55,6 +55,6 @@ class BackupToDos(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
   ('/backup/entries', BackupEntries),
   ('/backup/todos', BackupToDos),
-  ('/backup', HandleBackup),
+  ('/backup/restore', HandleBackup),
   ('/backup/list', ListModels)],
                               debug=True)
