@@ -71,3 +71,8 @@ textarea {
     content: "☐";
     padding-right: 5px;
 }
+
+.todo .done:before {
+  content: "✔";
+  color: green;
+};

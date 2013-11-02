@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import requests
 import datetime
 import sys
@@ -36,7 +37,7 @@ if sys.argv[1] == 'backup':
 elif sys.argv[1] == 'restore':
   files = os.listdir('backup/')
   files.sort()
-  newest_backup = "-".join(files[0].split("-")[:3])
+  newest_backup = "-".join(files[-1].split("-")[:3])
   backup_files = [f for f in files if newest_backup in f]
   print backup_files
 

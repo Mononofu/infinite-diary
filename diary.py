@@ -152,12 +152,18 @@ class ShowToDo(webapp2.RequestHandler):
     todos = defaultdict(list)
     for t in ToDo.all().filter('done_time =', None).order('-creation_time'):
       todos[t.category].append(t)
+    for t in ToDo.all().filter('done_time >', datetime.datetime.now() -
+                               datetime.timedelta(days=7)):
+      todos[t.category].append(t)
 
     body_text = ""
     for category, items in todos.iteritems():
       body_text += "<h2>%s</h2>\n<ul class='todo'>" % category
       for t in items:
-        body_text += "\t<a href='/todo/finish/%s'><li>%s</li></a>\n" % (
+        if t.done_time:
+          body_text += "\t<li class='done'>%s</li>\n" % t.content
+        else:
+          body_text += "\t<a href='/todo/finish/%s'><li>%s</li></a>\n" % (
             t.key(), t.content)
       body_text += "</ul>"
 

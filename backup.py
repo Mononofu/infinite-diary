@@ -2,7 +2,6 @@ import webapp2
 import json
 
 from models import Entry, ToDo
-from templates import indexTemplate, backupTemplate
 from config import BACKUP_KEY
 
 def enforce_key(self):
@@ -17,8 +16,13 @@ class ListModels(webapp2.RequestHandler):
 class HandleBackup(webapp2.RequestHandler):
   def post(self):
     enforce_key(self)
+
     rawEntries = self.request.get("entries")
     entries = json.loads(rawEntries)
+
+    for e in Entry.all():
+      e.delete()
+
     for e in entries:
       newEntry = Entry()
       newEntry.from_json(e)
@@ -26,12 +30,16 @@ class HandleBackup(webapp2.RequestHandler):
 
     rawTodos = self.request.get("todos")
     todos = json.loads(rawTodos)
+
+    for t in ToDo.all():
+      t.delete()
+
     for t in todos:
       newToDo = ToDo()
       newToDo.from_json(t)
       newToDo.put()
 
-    self.redirect("/backup")
+    self.response.out.write("Backup successfuly restored.")
 
 
 class BackupEntries(webapp2.RequestHandler):
