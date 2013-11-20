@@ -15,7 +15,7 @@ if len(sys.argv) < 2 or len(sys.argv) > 3:
   usage()
 
 if len(sys.argv) == 3:
-  site = sys.argv[2]
+  site = sys.argv[2].strip("/")
 
 s = requests.session()
 params = {
@@ -50,7 +50,7 @@ elif sys.argv[1] == 'restore':
   files = dict([(model, open(get_backup(model))) for model in list_of_models])
   files['key'] = BACKUP_KEY
   print files
-  print requests.post("%s/backup/restore" % site, files=files).text
+  print s.post("%s/backup/restore" % site, files=files).text
 
 else:
   usage()
