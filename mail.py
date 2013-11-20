@@ -25,6 +25,11 @@ class EntryReminder(webapp2.RequestHandler):
       old_entry = ""
       if q.count() > 0:
         old_entry = "\tEntry from 30 days ago\n%s\n\n" % q[0].content
+
+      q = Entry.all().filter("date =", today - datetime.timedelta(days=180))
+      if q.count() > 0:
+        old_entry += "\tEntry from 180 days ago\n%s\n\n" % q[0].content
+
       mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
               to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
               subject="Entry reminder",
