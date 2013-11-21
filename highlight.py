@@ -18,7 +18,8 @@ class ShowHighlights(webapp2.RequestHandler):
       h = Highlight.all().filter("date =", month).filter("period =", "month").get()
 
       if h:
-        pass
+        out += "<h2>%s</h2>\n" % month.strftime("%B %Y")
+        out += h.entry.render()
       else:
         out += "<a href='/highlights/month/%d'><h2>%s</h2></a>" % (
           month.toordinal(), month.strftime("%B %Y"))
@@ -35,11 +36,20 @@ class PickMonthlyHighlight(webapp2.RequestHandler):
     out = ""
     month = date.fromordinal(int(ordinal))
     for e in Entry.all().filter("date >=", month).filter("date <", next_month(month)):
-      out += "<br><a href='/highlights/month/%s/pick/%s'>Pick below entry:</a>%s" % (
-        ordinal, e.key(), e.render())
+      out += """%s
+<form action='/highlights/month/%s' method='POST'>
+  <input type='hidden' name='key' value='%s'>
+  <input type='submit' value='Pick'>
+</form><br><br>""" % (e.render(), ordinal, e.key())
 
     self.response.out.write(indexTemplate.render({
       'title': 'Highlights - Monthly',
       'body': out,
       'active_page': 'highlights'
     }))
+
+  def post(self, ordinal):
+    e = Entry.get(self.request.get('key'))
+    h = Highlight(period='month', entry=e, date=date.fromordinal(int(ordinal)))
+    h.put()
+    self.redirect('/highlights')
