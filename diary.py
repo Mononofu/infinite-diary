@@ -1,5 +1,4 @@
 import webapp2
-import re
 import datetime
 from pytz.gae import pytz
 from collections import defaultdict
@@ -7,21 +6,11 @@ from collections import defaultdict
 from google.appengine.ext.webapp import blobstore_handlers
 
 from models import Entry, Attachment, ToDo
-from templates import (attachmentTemplate, entryTemplate, indexTemplate,
+from templates import (attachmentTemplate, indexTemplate,
     entryAppendTemplate, backupTemplate)
 from mail import EntryReminder, MailReceiver
-from config import BACKUP_KEY
-
-local_tz = pytz.timezone('Europe/London')
-
-
-def markup_text(text):
-  def add_a_tag(match):
-    return "<a href='%s'>%s</a>" % (match.group(0), match.group(0))
-  text = re.sub("https?://([0-9a-zA-Z-]+)(\.[a-zA-Z0-9]+){1,6}[\S]*",
-    add_a_tag, text)
-
-  return text.replace("\n", "<br>\n")
+from highlight import ShowHighlights, PickMonthlyHighlight
+from config import BACKUP_KEY, local_tz
 
 
 class MainPage(webapp2.RequestHandler):
@@ -37,21 +26,7 @@ class MainPage(webapp2.RequestHandler):
 
     for e in Entry.all().filter("date <", older_than).order('-date').run(
         limit=20):
-      attachments = ""
-      for a in Attachment.all().filter("entry =", e.key()):
-        attachments += attachmentTemplate.render({
-          'name': a.name,
-          'thumbnail': a.thumbnail,
-          'key': a.key()
-        })
-      body += entryTemplate.render({
-        'entry_day': e.date.strftime("%A, %d %B"),
-        'content': markup_text(e.content),
-        'creation_time': pytz.utc.localize(e.creation_time).astimezone(
-            local_tz).strftime("%A, %d %B - %H:%M"),
-        'attachments': attachments,
-        'key': e.key()
-      })
+      body += e.render()
       oldest = e.date.toordinal()
 
     nav = """
@@ -197,6 +172,8 @@ app = webapp2.WSGIApplication([
   ('/ideas', ShowIdeas),
   ('/todo', ShowToDo),
   ('/todo/finish/([^/]+)', FinishToDo),
+  ('/highlights', ShowHighlights),
+  ('/highlights/month/(\d+)', PickMonthlyHighlight),
   ('/append/([^/]+)', EntryAppendForm),
   ('/append', EntryAppendSubmit),
   ('/backup', ShowBackup),
