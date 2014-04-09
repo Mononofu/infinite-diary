@@ -2,9 +2,7 @@
     <h3>{{entry_day}}</h3>
     <form action="/edit" method="post">
         <input type="hidden" name="key" value="{{key}}">
-        <textarea rows="5" name="content">
-          {{content}}
-        </textarea>
+        <textarea rows="5" name="content">{{content}}</textarea>
         <button type="submit" class="btn btn-primary">Save changes</button>
         <button type="reset" class="btn">Reset</button>
     </form>
