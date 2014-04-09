@@ -5,7 +5,7 @@ from pytz.gae import pytz
 import datetime
 import re
 
-from templates import entryTemplate
+from templates import entryTemplate, attachmentTemplate
 from config import local_tz
 
 

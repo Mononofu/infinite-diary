@@ -8,6 +8,6 @@ indexTemplate = jinja_environment.get_template('templates/index.html')
 entryTemplate = jinja_environment.get_template('templates/entry.html')
 attachmentTemplate = jinja_environment.get_template(
   'templates/attachment.html')
-entryAppendTemplate = jinja_environment.get_template(
-  'templates/entry_append.html')
+entryEditTemplate = jinja_environment.get_template(
+  'templates/entry_edit.html')
 backupTemplate = jinja_environment.get_template('templates/backup.html')

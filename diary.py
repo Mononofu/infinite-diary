@@ -5,9 +5,9 @@ from collections import defaultdict
 
 from google.appengine.ext.webapp import blobstore_handlers
 
-from models import Entry, Attachment, ToDo
+from models import Entry, Attachment, ToDo, markup_text
 from templates import (attachmentTemplate, indexTemplate,
-    entryAppendTemplate, backupTemplate)
+    entryEditTemplate, backupTemplate)
 from mail import EntryReminder, MailReceiver
 from highlight import ShowHighlights, PickMonthlyHighlight
 from config import BACKUP_KEY, local_tz
@@ -59,12 +59,12 @@ class ShowAttachments(webapp2.RequestHandler):
     }))
 
 
-class EntryAppendForm(webapp2.RequestHandler):
+class EntryEditForm(webapp2.RequestHandler):
   def get(self, key):
     e = Entry.get(key)
-    body = entryAppendTemplate.render({
+    body = entryEditTemplate.render({
       'entry_day': e.date.strftime("%A, %d %B"),
-      'content': markup_text(e.content),
+      'content': e.content,
       'key': e.key()
     })
 
@@ -74,16 +74,12 @@ class EntryAppendForm(webapp2.RequestHandler):
     }))
 
 
-class EntryAppendSubmit(webapp2.RequestHandler):
+class EntryEditSubmit(webapp2.RequestHandler):
   def post(self):
     key = self.request.get('key')
     try:
       e = Entry.get(key)
-      content = self.request.get('content')
-      e.content += "\n\n<b>extended on %s</b>\n%s" % (
-        pytz.utc.localize(datetime.datetime.now()).astimezone(
-            local_tz).strftime("%A, %d %B - %H:%M"),
-        content)
+      e.content = self.request.get('content')
       e.put()
       self.redirect("/")
     except Exception as e:
@@ -174,8 +170,8 @@ app = webapp2.WSGIApplication([
   ('/todo/finish/([^/]+)', FinishToDo),
   ('/highlights', ShowHighlights),
   ('/highlights/month/(\d+)', PickMonthlyHighlight),
-  ('/append/([^/]+)', EntryAppendForm),
-  ('/append', EntryAppendSubmit),
+  ('/edit/([^/]+)', EntryEditForm),
+  ('/edit', EntryEditSubmit),
   ('/backup', ShowBackup),
   webapp2.Route('/_ah/admin', webapp2.RedirectHandler, defaults={
     '_uri': 'https://appengine.google.com/dashboard?app_id=s~infinite-diary'})

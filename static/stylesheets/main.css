@@ -44,7 +44,7 @@ body {
   position: relative;
 }
 
-.append_link {
+.edit_link {
   right: 0px;
   position: absolute;
 }
@@ -75,4 +75,9 @@ textarea {
 .todo .done:before {
   content: "✔";
   color: green;
-};
+}
+
+.row {
+  margin-left: 0px;
+}
+

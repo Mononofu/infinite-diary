@@ -7,6 +7,6 @@ DIARY_NAME = "Infinite Diary"
 DIARY_EMAIL = "diary@furidamu.org"
 TODO_EMAIL = "todo@furidamu.org"
 
-BACKUP_KEY = ''
+BACKUP_KEY = 'Cev2pDLLAOiO5YMsrgmWaMytysXDmy'
 
 local_tz = pytz.timezone('Europe/London')

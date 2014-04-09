@@ -1,9 +1,10 @@
 <div class="entry">
     <h3>{{entry_day}}</h3>
-    <p>{{content}}</p>
-    <form action="/append" method="post">
+    <form action="/edit" method="post">
         <input type="hidden" name="key" value="{{key}}">
-        <textarea rows="5" name="content"></textarea>
+        <textarea rows="5" name="content">
+          {{content}}
+        </textarea>
         <button type="submit" class="btn btn-primary">Save changes</button>
         <button type="reset" class="btn">Reset</button>
     </form>
