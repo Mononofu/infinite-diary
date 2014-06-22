@@ -71,8 +71,8 @@ class MailReceiver(InboundMailHandler):
   def receive(self, message):
     logging.info("Received a message from: " + message.sender)
 
-    if "Happyness Check" in message.subject:
-      self.handle_happyness(message)
+    if "Happiness Check" in message.subject:
+      self.handle_happiness(message)
     elif DIARY_EMAIL in message.to:
       self.handle_entry(message)
     elif TODO_EMAIL in message.to:
@@ -99,9 +99,10 @@ class MailReceiver(InboundMailHandler):
     raw, content = self.get_content(message)
     if " " in content:
       score, tags = content.split(" ", 1)
-      Status(happyness=score, tags=tags.split(";")).put()
+      tags = map(lambda t: t.strip(), tags.split(";"))
+      Status(happyness=int(score), tags=tags).put()
     else:
-      Status(happyness=score).put()
+      Status(happyness=int(score)).put()
 
   def handle_entry(self, message):
 

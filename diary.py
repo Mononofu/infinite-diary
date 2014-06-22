@@ -10,7 +10,7 @@ from templates import (attachmentTemplate, indexTemplate,
 from mail import EntryReminder, MailReceiver
 from highlight import ShowHighlights, PickMonthlyHighlight
 from config import BACKUP_KEY
-from happyness import CheckHappyness
+from happiness import CheckHappiness
 
 
 class MainPage(webapp2.RequestHandler):
@@ -165,7 +165,7 @@ app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
-  ('/happyness/check', CheckHappyness)
+  ('/happiness/check', CheckHappiness),
   ('/attachments', ShowAttachments),
   ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
