@@ -8,10 +8,11 @@ import re
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.api import files, mail, images
 
-from models import Entry, ToDo, Attachment
+from models import Entry, ToDo, Attachment, Status
 from config import (DIARY_EMAIL, DIARY_NAME, RECIPIENT_NAME, RECIPIENT_EMAIL,
-    TODO_EMAIL)
+                    TODO_EMAIL)
 from templates import indexTemplate
+
 
 class EntryReminder(webapp2.RequestHandler):
   def get(self):
@@ -31,9 +32,9 @@ class EntryReminder(webapp2.RequestHandler):
         old_entry += "\tEntry from 180 days ago\n%s\n\n" % q[0].content
 
       mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
-              to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
-              subject="Entry reminder",
-              body="""Don't forget to update your diary!
+                     to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
+                     subject="Entry reminder",
+                     body="""Don't forget to update your diary!
 
 Just respond to this message with todays entry.
 
@@ -70,7 +71,9 @@ class MailReceiver(InboundMailHandler):
   def receive(self, message):
     logging.info("Received a message from: " + message.sender)
 
-    if DIARY_EMAIL in message.to:
+    if "Happyness Check" in message.subject:
+      self.handle_happyness(message)
+    elif DIARY_EMAIL in message.to:
       self.handle_entry(message)
     elif TODO_EMAIL in message.to:
       self.handle_todo(message)
@@ -89,8 +92,16 @@ class MailReceiver(InboundMailHandler):
 
     for todo_text in [s.lstrip(" -").strip() for s in content.split("\n")]:
       todo = ToDo(author='Julian', category=message.subject.lower(),
-          content=todo_text)
+                  content=todo_text)
       todo.put()
+
+  def handle_happiness(self, message):
+    raw, content = self.get_content(message)
+    if " " in content:
+      score, tags = content.split(" ", 1)
+      Status(happyness=score, tags=tags.split(";")).put()
+    else:
+      Status(happyness=score).put()
 
   def handle_entry(self, message):
 
@@ -115,9 +126,9 @@ class MailReceiver(InboundMailHandler):
     for part in message.original.walk():
       content_type = part.get_content_type()
       if content_type not in ["text/plain", "text/html", "multipart/mixed",
-        "multipart/alternative"]:
+                              "multipart/alternative"]:
         attachment = Attachment(name=part.get_param("name"),
-          content_type=content_type)
+                                content_type=content_type)
 
         # store attachment in blobstore
         blob = files.blobstore.create(mime_type='application/octet-stream')
@@ -129,6 +140,6 @@ class MailReceiver(InboundMailHandler):
         attachment.content = files.blobstore.get_blob_key(blob)
         attachment.entry = entry.key()
         attachment.thumbnail = images.get_serving_url(attachment.content,
-          size=400)
+                                                      size=400)
 
         attachment.put()

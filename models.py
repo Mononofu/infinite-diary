@@ -13,7 +13,7 @@ def markup_text(text):
   def add_a_tag(match):
     return "<a href='%s'>%s</a>" % (match.group(0), match.group(0))
   text = re.sub("https?://([0-9a-zA-Z-]+)(\.[a-zA-Z0-9]+){1,6}[\S]*",
-    add_a_tag, text)
+                add_a_tag, text)
 
   return text.replace("\n", "<br>\n")
 
@@ -70,7 +70,7 @@ class ToDo(db.Model):
                                                     '%Y-%m-%d %H:%M:%S.%f')
     if json['done_time'] != 'None':
       self.done_time = datetime.datetime.strptime(json['done_time'],
-                                                    '%Y-%m-%d %H:%M:%S.%f')
+                                                  '%Y-%m-%d %H:%M:%S.%f')
 
 
 class Attachment(db.Model):
@@ -86,3 +86,9 @@ class Highlight(db.Model):
   period = db.StringProperty(choices=['week', 'month', 'year'])
   entry = db.ReferenceProperty(reference_class=Entry)
   date = db.DateProperty()
+
+
+class Status(db.Model):
+  date = db.DateTimeProperty(auto_now_add=True)
+  happyness = db.IntegerProperty()
+  tags = db.StringListProperty()

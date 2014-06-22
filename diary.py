@@ -1,23 +1,23 @@
 import webapp2
 import datetime
-from pytz.gae import pytz
 from collections import defaultdict
 
 from google.appengine.ext.webapp import blobstore_handlers
 
-from models import Entry, Attachment, ToDo, markup_text
+from models import Entry, Attachment, ToDo
 from templates import (attachmentTemplate, indexTemplate,
-    entryEditTemplate, backupTemplate)
+                       entryEditTemplate, backupTemplate)
 from mail import EntryReminder, MailReceiver
 from highlight import ShowHighlights, PickMonthlyHighlight
-from config import BACKUP_KEY, local_tz
+from config import BACKUP_KEY
+from happyness import CheckHappyness
 
 
 class MainPage(webapp2.RequestHandler):
   def get(self):
     self.response.headers['Content-Type'] = 'text/html'
     older_than = int(self.request.get("older_than",
-        datetime.datetime.now().date().toordinal() + 1))
+                     datetime.datetime.now().date().toordinal() + 1))
     older_than = datetime.date.fromordinal(older_than)
 
     body = ""
@@ -25,7 +25,7 @@ class MainPage(webapp2.RequestHandler):
     oldest = datetime.datetime.now().date().toordinal() + 1
 
     for e in Entry.all().filter("date <", older_than).order('-date').run(
-        limit=20):
+          limit=20):
       body += e.render()
       oldest = e.date.toordinal()
 
@@ -98,7 +98,7 @@ class ServeAttachment(blobstore_handlers.BlobstoreDownloadHandler):
 class ShowIdeas(webapp2.RequestHandler):
   def scrape_ideas(self, text):
     return [line.split(":", 2)[1] for line in text.split("\n")
-      if line.startswith("--") and "idea" in line and ":" in line]
+            if line.startswith("--") and "idea" in line and ":" in line]
 
   def get(self):
     ideas = []
@@ -144,12 +144,14 @@ class ShowToDo(webapp2.RequestHandler):
         'active_page': 'todo'
     }))
 
+
 class FinishToDo(webapp2.RequestHandler):
   def get(self, key):
     t = ToDo.get(key)
     t.done_time = datetime.datetime.now()
     t.put()
     self.redirect('/todo?refresh')
+
 
 class ShowBackup(webapp2.RequestHandler):
   def get(self):
@@ -163,6 +165,7 @@ app = webapp2.WSGIApplication([
   ('/', MainPage),
   MailReceiver.mapping(),
   ('/reminder', EntryReminder),
+  ('/happyness/check', CheckHappyness)
   ('/attachments', ShowAttachments),
   ('/attachment/([^/]+)', ServeAttachment),
   ('/ideas', ShowIdeas),
