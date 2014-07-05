@@ -3,7 +3,3 @@ cron:
   url: /reminder
   schedule: every day 22:00
   timezone: Europe/London
-- description: random happiness check
-  url: /happiness/check?frequency=0.005
-  schedule: every 1 mins from 8:30 to 23:59
-  timezone: Europe/London

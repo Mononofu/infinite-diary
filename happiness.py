@@ -18,7 +18,9 @@ class CheckHappiness(webapp2.RequestHandler):
       mail.send_mail(sender='%s <%s>' % (DIARY_NAME, DIARY_EMAIL),
                      to='%s <%s>' % (RECIPIENT_NAME, RECIPIENT_EMAIL),
                      subject='Happiness Check',
-                     body='')
+                     body='''Please report your current happiness on a scale from 0 to 10, e.g.
+7 programming; music
+''')
       result = 'happiness check sent'
 
     self.response.out.write(indexTemplate.render({
