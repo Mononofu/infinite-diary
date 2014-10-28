@@ -33,7 +33,7 @@ class EntryReminder(webapp2.RequestHandler):
 
       mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
                      to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
-                     subject="Entry reminder for %s",
+                     subject="Entry reminder for %s" % today.strftime("%b %d"),
                      body="""Don't forget to update your diary!
 
 Remember to include short snippets of important things you did today,
@@ -44,7 +44,7 @@ Just respond to this message with todays entry.
 %s
 -----
 diaryentry%dtag
-""" % (today.strftime("%b %d"), old_entry, int(time.time())))
+""" % (old_entry, int(time.time())))
       msg = "Reminder sent"
     else:
       msg = "I already have an entry for today"
