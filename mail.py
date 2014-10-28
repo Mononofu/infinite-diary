@@ -16,7 +16,7 @@ from templates import indexTemplate
 
 class EntryReminder(webapp2.RequestHandler):
   def get(self):
-    today = datetime.date.fromtimestamp(time.time())
+    today = datetime.date.today()
 
     q = Entry.all().filter("date >", today - datetime.timedelta(days=1))
     msg = ""
@@ -33,15 +33,18 @@ class EntryReminder(webapp2.RequestHandler):
 
       mail.send_mail(sender="%s <%s>" % (DIARY_NAME, DIARY_EMAIL),
                      to="%s <%s>" % (RECIPIENT_NAME, RECIPIENT_EMAIL),
-                     subject="Entry reminder",
+                     subject="Entry reminder for %s",
                      body="""Don't forget to update your diary!
+
+Remember to include short snippets of important things you did today,
+as well as a list of things you are grateful for.
 
 Just respond to this message with todays entry.
 
 %s
 -----
 diaryentry%dtag
-""" % (old_entry, int(time.time())))
+""" % (today.strftime("%b %d"), old_entry, int(time.time())))
       msg = "Reminder sent"
     else:
       msg = "I already have an entry for today"
