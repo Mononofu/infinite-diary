@@ -59,7 +59,7 @@ diaryentry%dtag
 class MailReceiver(InboundMailHandler):
   def strip_quote(self, body):
     return re.split(".*Infinite Diary[^:]+:", body)[0].split(
-      'Just respond to this message with todays entry.')[0]
+      'Don\'t forget to update your diary!')[0]
 
   def restore_newlines(self, body):
     clean = ""
