@@ -4,9 +4,12 @@ import time
 import base64
 import logging
 import re
+import os
 
+import cloudstorage as gcs
+from google.appengine.ext import blobstore
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
-from google.appengine.api import files, mail, images
+from google.appengine.api import mail, images
 
 from models import Entry, ToDo, Attachment, Status
 from config import (DIARY_EMAIL, DIARY_NAME, RECIPIENT_NAME, RECIPIENT_EMAIL,
@@ -53,13 +56,13 @@ diaryentry%dtag
         'title': 'Ideas',
         'body': msg,
         'active_page': 'reminder'
-      }))
+    }))
 
 
 class MailReceiver(InboundMailHandler):
   def strip_quote(self, body):
     return re.split(".*Infinite Diary[^:]+:", body)[0].split(
-      'Don\'t forget to update your diary!')[0]
+        'Don\'t forget to update your diary!')[0]
 
   def restore_newlines(self, body):
     clean = ""
@@ -87,7 +90,7 @@ class MailReceiver(InboundMailHandler):
   def get_content(self, message):
     for content_type, body in message.bodies("text/plain"):
       return (body.decode(), self.restore_newlines(
-        self.strip_quote(body.decode())))
+          self.strip_quote(body.decode())))
 
     return None
 
@@ -127,6 +130,8 @@ class MailReceiver(InboundMailHandler):
     entry.date = datetime.date.fromtimestamp(int(matches.group(1)))
     entry.put()
 
+    num_attachments = 0
+
     # fall back to raw mail message for attachment parsing
     for part in message.original.walk():
       content_type = part.get_content_type()
@@ -136,15 +141,18 @@ class MailReceiver(InboundMailHandler):
                                 content_type=content_type)
 
         # store attachment in blobstore
-        blob = files.blobstore.create(mime_type='application/octet-stream')
+        bucket = '/infinite-diary.appspot.com'
+        filename = os.path.join(bucket, 'attachments',
+                                time.strftime('%Y-%m-%d_%H-%M'),
+                                str(num_attachments))
 
-        with files.open(blob, 'a') as f:
+        with gcs.open(filename, 'w') as f:
           f.write(base64.b64decode(part.get_payload()))
 
-        files.finalize(blob)
-        attachment.content = files.blobstore.get_blob_key(blob)
+        attachment.content = blobstore.create_gs_key('/gs' + filename)
         attachment.entry = entry.key()
         attachment.thumbnail = images.get_serving_url(attachment.content,
                                                       size=400)
 
         attachment.put()
+        num_attachments += 1
