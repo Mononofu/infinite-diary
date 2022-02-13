@@ -12,6 +12,8 @@ from highlight import ShowHighlights, PickMonthlyHighlight
 from config import BACKUP_KEY
 from happiness import CheckHappiness
 
+_MONTHS = ['Jan', 'Feb', 'Mar', "Apr", 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 
 class MainPage(webapp2.RequestHandler):
   def get(self):
@@ -22,8 +24,21 @@ class MainPage(webapp2.RequestHandler):
 
     body = ""
 
-    oldest = datetime.datetime.now().date().toordinal() + 1
 
+    for oldest_entry in Entry.all().order('date').run(limit=1):
+      cur_year = datetime.datetime.now().year
+      for year in range(oldest_entry.date.year, cur_year + 1):
+        body += '<p>%d' % year
+        for month in range(12):
+          # Show entries older than the first day of the following month.
+          offset = datetime.datetime(year=year + 1 if month == 11 else year, month=1 + (month + 1) % 12, day=1)
+          if offset.date() > oldest_entry.date:
+            body += ' <a href="/?older_than=%d">%s</a>' % (offset.toordinal(), _MONTHS[month])
+          else:
+            body += ' ' + _MONTHS[month]
+
+
+    oldest = datetime.datetime.now().date().toordinal() + 1
     for e in Entry.all().filter("date <", older_than).order('-date').run(
           limit=20):
       body += e.render()
