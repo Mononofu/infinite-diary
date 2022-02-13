@@ -44,7 +44,7 @@ class Entry(db.Model):
         'key': a.key()
       })
     return entryTemplate.render({
-      'entry_day': self.date.strftime("%A, %d %B"),
+      'entry_day': self.date.strftime("%A, %d %B %Y"),
       'content': markup_text(self.content),
       'creation_time': pytz.utc.localize(self.creation_time).astimezone(
           local_tz).strftime("%A, %d %B - %H:%M"),
