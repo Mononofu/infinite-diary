@@ -6,7 +6,8 @@ import datetime
 import re
 
 from templates import entryTemplate, attachmentTemplate
-from config import local_tz
+
+local_tz = pytz.timezone('Europe/London')
 
 
 def markup_text(text):
